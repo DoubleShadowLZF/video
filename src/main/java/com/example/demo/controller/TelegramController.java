@@ -1,41 +1,30 @@
 package com.example.demo.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.extra.spring.SpringUtil;
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.http.HttpUtil;
-import cn.hutool.json.JSONUtil;
 //import com.example.demo.bot.MyTelegramBot;
+import cn.hutool.extra.pinyin.PinyinUtil;
+import cn.hutool.json.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.common.RespView;
 import com.example.demo.domain.Video;
 import com.example.demo.domain.VideoPath;
-import com.example.demo.exp.BotException;
 import com.example.demo.handler.NonStaticResourceHttpRequestHandler;
 import com.example.demo.mapper.VideoMapper;
 import com.example.demo.mapper.VideoPathMapper;
-import com.example.demo.service.VideoService;
-import com.example.demo.util.BotHttpUtil;
 import com.example.demo.view.VodDetailView;
 import com.example.demo.view.VodListView;
+import com.google.common.collect.ImmutableMap;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.websocket.server.PathParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 //import org.telegram.telegrambots.meta.api.methods.GetFile;
 //import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 //import org.telegram.telegrambots.meta.api.objects.InputFile;
@@ -46,10 +35,9 @@ import java.io.*;
 
 
 import java.io.File;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.sql.Wrapper;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 //@RequestMapping("/telegram")
@@ -128,34 +116,79 @@ public class TelegramController {
 
     @RequestMapping(value = "/vod_list", method = RequestMethod.GET)
     public RespView movtype(
-            @RequestParam("movtype") Integer movtype
+            @RequestParam(value = "movtype", required = false) String movtype
+            , @RequestParam(value = "page", required = false) Integer pageNum
+            , @RequestParam(value = "keyword", required = false) String keyword
+            , @RequestParam(value = "vod_area", required = false) String vodArea
+            , @RequestParam(value = "vod_class", required = false) String vodClass
     ) throws ServletException, IOException {
-        List<VodListView> videos = videoMapper.getVideoByTypeId(movtype);
+        Page page = new Page(pageNum, 10);
+        QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
+        if (StrUtil.isNotEmpty(movtype)) {
+
+            queryWrapper.eq("type_id_1", movtype);
+        }
+        if (StrUtil.isNotEmpty(vodArea)) {
+            queryWrapper.eq("vod_area", vodArea);
+
+        }
+        if (StrUtil.isNotEmpty(vodClass)) {
+            queryWrapper.eq("vod_class", vodClass);
+        }
+//        queryWrapper.like("vod_Actor", keyword);
+//        queryWrapper.like("vod_blure", keyword);
+        if (StrUtil.isNotEmpty(keyword)) {
+            queryWrapper.like("vod_content", keyword);
+        }
+//        queryWrapper.like("vod_director", keyword);
+        if (StrUtil.isNotEmpty(keyword)) {
+            queryWrapper.like("vod_en", keyword);
+        }
+        if (StrUtil.isNotEmpty(keyword)) {
+            queryWrapper.like("vod_name", keyword);
+        }
+//        queryWrapper.like("vod_writer", keyword);
+        Page<Video> page1 = videoMapper.selectPage(page, queryWrapper);
+        List<VodListView> videos = page1.getRecords().stream().map(item -> {
+            VodListView v = new VodListView();
+            v.setVodId(item.getId());
+            v.setVodPic(item.getVodPic());
+            v.setVoName(item.getVodName());
+            v.setVodRemarks(item.getVodRemarks());
+            return v;
+        }).collect(Collectors.toUnmodifiableList());
         return RespView.success(videos);
     }
 
     @RequestMapping(value = "/vod_detail", method = RequestMethod.GET)
-    public RespView vod_detail(@RequestParam("vod_id")Integer vodId) throws ServletException, IOException {
+    public RespView vod_detail(@RequestParam("vod_id") Integer vodId) throws ServletException, IOException {
         Video video = videoMapper.selectById(vodId);
         VodDetailView view = new VodDetailView();
-        BeanUtil.copyProperties(video,view);
-        QueryWrapper<VideoPath> wrapper= new QueryWrapper<VideoPath>();
+        BeanUtil.copyProperties(video, view);
+        QueryWrapper<VideoPath> wrapper = new QueryWrapper<VideoPath>();
         wrapper.eq("vod_id", vodId);
         wrapper.orderByAsc("REMARK");
         List<VideoPath> videoPaths = videoPathMapper.selectList(wrapper);
-        Map<String,String> vodPlayUrl = new LinkedHashMap<>();
-        videoPaths.stream().forEach(item -> vodPlayUrl.put(item.getRemark(),item.getPath()));
+        Map<String, String> vodPlayUrl = new LinkedHashMap<>();
+        videoPaths.stream().forEach(item -> vodPlayUrl.put(
+                item.getRemark()
+                , StrUtil.format("http://127.0.0.1:8080/video/ts/{}/do", item.getId())
+        ));
         view.setVodPlayUrl(vodPlayUrl);
         return RespView.success(view);
     }
 
-    @RequestMapping(value = {"/video/{path}"}, method = RequestMethod.GET)
+    @RequestMapping(value = {"/video/{videoId}"}, method = RequestMethod.GET)
     public void video(
-            @PathVariable(value = "path") String srcPath,
+            @PathVariable(value = "videoId") String videoId,
             HttpServletRequest request,
             HttpServletResponse response
     ) throws ServletException, IOException {
-        String path = "D:\\project\\demo\\src\\main\\resources\\static\\video\\" + srcPath;
+        List<VideoPath> videoPaths = videoPathMapper.selectByMap(ImmutableMap.of("id", videoId));
+        String sourcePath = videoPaths.get(0).getSourcePath();
+        String sourceFile = videoPaths.get(0).getSourceFile();
+
+        String path = "D:\\project\\demo\\src\\main\\resources\\" + sourcePath + sourceFile.split("\\.")[0] + "_ts\\" + sourceFile;
 
         File file = new File(path);
         if (file.exists()) {
@@ -165,15 +198,50 @@ public class TelegramController {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
         }
+
     }
 
-    @RequestMapping(value = "/video/ts/{fileId}", method = RequestMethod.GET)
+    @RequestMapping(value = "/video/ts/{videoPathId}/{fileName}", method = RequestMethod.GET)
     public void videoDetail(
-            @PathVariable("fileId") String fileId
+            @PathVariable("videoPathId") String videoPathId
+            , @PathVariable("fileName") String fileName
             , HttpServletRequest request
             , HttpServletResponse response
     ) throws ServletException, IOException {
-        String path = "D:\\project\\demo\\src\\main\\resources\\static\\video\\"+fileId;
+        String path = null;
+        List<VideoPath> videoPaths = videoPathMapper.selectByMap(ImmutableMap.of("id", videoPathId));
+        String sourcePath = videoPaths.get(0).getSourcePath();
+        String sourceFile = videoPaths.get(0).getSourceFile();
+        if(!"do".equals(fileName)){
+            sourceFile = fileName;
+        }
+        path = sourcePath + sourceFile;
+
+        File file = getFile(path);
+        if (file.exists()) {
+            request.setAttribute(NonStaticResourceHttpRequestHandler.ATTR_FILE, file.getAbsolutePath());
+            nonStaticResourceHttpRequestHandler.handleRequest(request, response);
+        } else {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
+        }
+    }
+
+    private File getFile(String paht) {
+        return new File("D:\\project\\demo\\src\\main\\resources\\" + paht);
+    }
+
+    @RequestMapping(value = "/video/pic/{vodId}/{fileId}", method = RequestMethod.GET)
+    public void pic(
+            @PathVariable("vodId") String vodId
+            , @PathVariable("fileId") String fileId
+            , HttpServletRequest request
+            , HttpServletResponse response
+    ) throws ServletException, IOException {
+        List<VideoPath> videoPaths = videoPathMapper.selectByMap(ImmutableMap.of("vod_id", vodId));
+        String sourcePath = videoPaths.get(0).getSourcePath();
+
+        String path = "D:\\project\\demo\\src\\main\\resources\\" + sourcePath + "\\" + fileId;
         File file = new File(path);
         if (file.exists()) {
             request.setAttribute(NonStaticResourceHttpRequestHandler.ATTR_FILE, path);
@@ -183,4 +251,80 @@ public class TelegramController {
             response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
         }
     }
+
+
+    @RequestMapping(value = "/video/txt/parseTxt", method = RequestMethod.POST)
+    public void pic(
+            @RequestBody String data
+    ) throws ServletException, IOException {
+        String[] split = data.split("\r\n");
+        String dateTime = null;
+        String desc = null;
+        String name = null;
+        String actor = null;
+        String pic = null;
+        for (String txt : split) {
+            if (txt.contains("上市时间：")) {
+                dateTime = txt.replace("上市时间：", "");
+            } else if (txt.contains("剧情：") || txt.contains("剧情/介绍：")) {
+                desc = txt.replace("上市时间：", "");
+            } else if (txt.contains("厂商：")) {
+                actor = txt.replace("厂商：", "");
+            } else if (txt.contains("图片：")) {
+                pic = txt.replace("图片：", "");
+            } else if (!StrUtil.contains(txt, "：")) {
+                name = txt;
+            }
+
+        }
+        QueryWrapper<Video> vqw = new QueryWrapper<>();
+        Long maxVideoId = videoMapper.selectCount(vqw);
+        int videoId = (int) (maxVideoId + 1);
+        Video video = new Video();
+        video.setId(videoId);
+        video.setTypeId1(4);
+        video.setTypeName("日本动漫");
+        video.setVodActor(actor);
+        video.setVodArea("日本");
+        video.setVodAuthor("TG");
+        video.setVodBlurb(desc);
+        video.setVodClass("动画,日韩动漫,日本动漫");
+        video.setVodContent(desc);
+        video.setVodDirector(actor);
+        video.setVodEn(PinyinUtil.getPinyin(name));
+        video.setVodName(name);
+        video.setVodPic("http://127.0.0.1:8080/video/pic/" + videoId + "/" + pic);
+        video.setVodPlayFrom("yhm3u8");
+        video.setVodRemarks("更新至4集");
+        video.setVodTime(DateUtil.formatDateTime(DateUtil.date()));
+        video.setVodTimeAdd((int) (DateUtil.date().getTime() / 1000));
+        video.setVodWriter(actor);
+        videoMapper.insert(video);
+
+
+        QueryWrapper<VideoPath> vpqw = new QueryWrapper<>();
+        Long maxVideoPathId = videoPathMapper.selectCount(vpqw);
+        int videoPathId = (int) (maxVideoPathId + 1);
+
+        File path = new File("D:\\project\\demo\\src\\main\\resources\\video\\" + name);
+        for (File file : path.listFiles()) {
+            if (file.getName().endsWith("_ts") && file.isDirectory()) {
+                VideoPath videoPath = new VideoPath();
+                videoPath.setId(videoPathId);
+                videoPath.setPath("/video/" + videoPathId);
+                videoPath.setCreateTime(DateUtil.date().toLocalDateTime());
+                videoPath.setUpdateTime(DateUtil.date().toLocalDateTime());
+                videoPath.setSourcePath("video/" + name + "/");
+                videoPath.setVodId(videoId);
+                for (File listFile : file.listFiles()) {
+                    if (listFile.getName().endsWith(".m3u8")) {
+                        videoPath.setSourceFile(listFile.getName());
+                    }
+                }
+                videoPathMapper.insert(videoPath);
+            }
+        }
+    }
+
+
 }

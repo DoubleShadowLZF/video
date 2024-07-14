@@ -12,11 +12,12 @@
             <result property="updateTime" column="UPDATE_TIME" jdbcType="TIMESTAMP"/>
             <result property="sourcePath" column="SOURCE_PATH" jdbcType="VARCHAR"/>
             <result property="vodId" column="VOD_ID" jdbcType="INTEGER"/>
+            <result property="sourceFile" column="SOURCE_FILE" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         ID,PATH,REMARK,
         CREATE_TIME,UPDATE_TIME,SOURCE_PATH,
-        VOD_ID
+        VOD_ID,SOURCE_FILE
     </sql>
 </mapper>

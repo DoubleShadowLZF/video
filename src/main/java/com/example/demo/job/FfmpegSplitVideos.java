@@ -6,13 +6,14 @@ import cn.hutool.core.util.StrUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 public class FfmpegSplitVideos {
     private static final String FFMPEG_PATH = "D:\\Program Files\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.exe"; // or provide full path to ffmpeg executable
 
     public static void main(String[] args) {
-        File dir = new File("D:\\Program Files\\ffmpeg-master-latest-win64-gpl\\bin");
+        File dir = new File("D:\\project\\demo\\src\\main\\resources\\video");
         processDirectory(dir);
     }
 
@@ -20,6 +21,10 @@ public class FfmpegSplitVideos {
         if (dir.isDirectory()) {
             for (File file : dir.listFiles()) {
                 if (file.isDirectory()) {
+                    File[] files = file.listFiles();
+                    if (Arrays.stream(files).anyMatch(item -> item.getName().endsWith("_ts"))) {
+                        continue;
+                    }
                     processDirectory(file);
                 } else if (file.getName().toLowerCase().endsWith(".mp4")) {
                     splitVideo(file);
@@ -49,9 +54,9 @@ public class FfmpegSplitVideos {
                 "-i", filePath,
                 "-start_number", "0",
                 //设置每片的长度，默认值为2，单位为秒。
-                "-hls_time", "600",
+                "-hls_time", "120",
                 //设置m3u8文件播放列表保存的最多条目
-                "-hls_list_size", "100",
+                "-hls_list_size", "1000",
                 "-f", "hls",
 
 //                "-i", filePath,

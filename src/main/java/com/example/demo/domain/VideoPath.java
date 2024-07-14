@@ -57,6 +57,12 @@ public class VideoPath implements Serializable {
     @TableField(value = "VOD_ID")
     private Integer vodId;
 
+    /**
+     * 
+     */
+    @TableField(value = "SOURCE_FILE")
+    private String sourceFile;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
@@ -78,7 +84,8 @@ public class VideoPath implements Serializable {
             && (this.getCreateTime() == null ? other.getCreateTime() == null : this.getCreateTime().equals(other.getCreateTime()))
             && (this.getUpdateTime() == null ? other.getUpdateTime() == null : this.getUpdateTime().equals(other.getUpdateTime()))
             && (this.getSourcePath() == null ? other.getSourcePath() == null : this.getSourcePath().equals(other.getSourcePath()))
-            && (this.getVodId() == null ? other.getVodId() == null : this.getVodId().equals(other.getVodId()));
+            && (this.getVodId() == null ? other.getVodId() == null : this.getVodId().equals(other.getVodId()))
+            && (this.getSourceFile() == null ? other.getSourceFile() == null : this.getSourceFile().equals(other.getSourceFile()));
     }
 
     @Override
@@ -92,6 +99,7 @@ public class VideoPath implements Serializable {
         result = prime * result + ((getUpdateTime() == null) ? 0 : getUpdateTime().hashCode());
         result = prime * result + ((getSourcePath() == null) ? 0 : getSourcePath().hashCode());
         result = prime * result + ((getVodId() == null) ? 0 : getVodId().hashCode());
+        result = prime * result + ((getSourceFile() == null) ? 0 : getSourceFile().hashCode());
         return result;
     }
 
@@ -108,6 +116,7 @@ public class VideoPath implements Serializable {
         sb.append(", updateTime=").append(updateTime);
         sb.append(", sourcePath=").append(sourcePath);
         sb.append(", vodId=").append(vodId);
+        sb.append(", sourceFile=").append(sourceFile);
         sb.append(", serialVersionUID=").append(serialVersionUID);
         sb.append("]");
         return sb.toString();

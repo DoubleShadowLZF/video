@@ -1,5 +1,6 @@
 package com.example.demo.mapper;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.demo.domain.Video;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.demo.view.VodListView;
@@ -17,7 +18,7 @@ import java.util.List;
 public interface VideoMapper extends BaseMapper<Video> {
 
     @Select("select id vodId,VOD_NAME voName,VOD_PIC vodPic,VOD_REMARKS vodRemarks from SEX_WEB.video where TYPE_ID_1 = #{movtype};")
-    public List<VodListView> getVideoByTypeId(@Param("movtype") Integer movtype);
+    public List<VodListView> getVideoByTypeId(IPage<Video> page, @Param("movtype") Integer movtype);
 
 }
 
