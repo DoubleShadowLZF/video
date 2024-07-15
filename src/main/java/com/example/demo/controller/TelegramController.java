@@ -283,21 +283,22 @@ public class TelegramController {
         String pic = null;
         for (String txt : split) {
             if (txt.contains("上市时间：")) {
-                dateTime = txt.replace("上市时间：", "");
+                dateTime = txt.replace("上市时间：", "").trim();
             } else if (txt.contains("剧情：") || txt.contains("剧情/介绍：")) {
-                desc = txt.replace("上市时间：", "");
+                desc = txt.replace("上市时间：", "").trim();
             } else if (txt.contains("厂商：")) {
-                actor = txt.replace("厂商：", "");
+                actor = txt.replace("厂商：", "").trim();
             } else if (txt.contains("图片：")) {
-                pic = txt.replace("图片：", "");
+                pic = txt.replace("图片：", "").trim();
             } else if (!StrUtil.contains(txt, "：")) {
-                name = txt;
+                name = txt.trim();
             }
-
         }
         QueryWrapper<Video> vqw = new QueryWrapper<>();
-        Long maxVideoId = videoMapper.selectCount(vqw);
-        int videoId = (int) (maxVideoId + 1);
+        vqw.orderByDesc("id");
+        Page<Video> page = new Page<>(1, 1);
+        Page<Video> videoPage = videoMapper.selectPage(page, vqw);
+        int videoId = (int) (videoPage.getRecords().get(0).getId() + 1);
         Video video = new Video();
         video.setId(videoId);
         video.setTypeId1(4);
@@ -311,6 +312,9 @@ public class TelegramController {
         video.setVodDirector(actor);
         video.setVodEn(PinyinUtil.getPinyin(name));
         video.setVodName(name);
+        if(StrUtil.isEmpty(pic)){
+            pic = name+".jpg";
+        }
         video.setVodPic("http://127.0.0.1:8080/video/pic/" + videoId + "/" + pic);
         video.setVodPlayFrom("yhm3u8");
         video.setVodRemarks("更新至4集");
@@ -324,7 +328,8 @@ public class TelegramController {
         Long maxVideoPathId = videoPathMapper.selectCount(vpqw);
         int videoPathId = (int) (maxVideoPathId + 1);
 
-        File path = new File("D:\\project\\demo\\src\\main\\resources\\video\\" + name);
+        File path = new File("D:\\video\\" + name);
+        int idx = 1;
         for (File file : path.listFiles()) {
             if (file.getName().endsWith("_ts") && file.isDirectory()) {
                 VideoPath videoPath = new VideoPath();
@@ -332,14 +337,17 @@ public class TelegramController {
                 videoPath.setPath("/video/" + videoPathId);
                 videoPath.setCreateTime(DateUtil.date().toLocalDateTime());
                 videoPath.setUpdateTime(DateUtil.date().toLocalDateTime());
-                videoPath.setSourcePath("video/" + name + "/");
+                videoPath.setParentPath("video/" + name + "/");
+                videoPath.setSourcePath(file.getName()+ "/");
                 videoPath.setVodId(videoId);
+                videoPath.setRemark("第"+ idx + "集");
                 for (File listFile : file.listFiles()) {
                     if (listFile.getName().endsWith(".m3u8")) {
                         videoPath.setSourceFile(listFile.getName());
                     }
                 }
                 videoPathMapper.insert(videoPath);
+                idx++;
             }
         }
     }
