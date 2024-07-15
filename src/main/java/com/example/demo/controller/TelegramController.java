@@ -18,6 +18,7 @@ import com.example.demo.mapper.VideoMapper;
 import com.example.demo.mapper.VideoPathMapper;
 import com.example.demo.view.VodDetailView;
 import com.example.demo.view.VodListView;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -185,14 +186,15 @@ public class TelegramController {
             HttpServletResponse response
     ) throws ServletException, IOException {
         List<VideoPath> videoPaths = videoPathMapper.selectByMap(ImmutableMap.of("id", videoId));
-        String sourcePath = videoPaths.get(0).getSourcePath();
-        String sourceFile = videoPaths.get(0).getSourceFile();
+        VideoPath videoPath = videoPaths.get(0);
+        String parentPath = videoPath.getParentPath();
+        String sourcePath = videoPath.getSourcePath();
+        String sourceFile = videoPath.getSourceFile();
 
-        String path = "D:\\project\\demo\\src\\main\\resources\\" + sourcePath + sourceFile.split("\\.")[0] + "_ts\\" + sourceFile;
 
-        File file = new File(path);
+        File file = getFile(parentPath + File.separatorChar + sourcePath + sourceFile.split("\\.")[0] + "_ts\\" + sourceFile);
         if (file.exists()) {
-            request.setAttribute(NonStaticResourceHttpRequestHandler.ATTR_FILE, path);
+            request.setAttribute(NonStaticResourceHttpRequestHandler.ATTR_FILE, file.getAbsolutePath());
             nonStaticResourceHttpRequestHandler.handleRequest(request, response);
         } else {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -210,14 +212,15 @@ public class TelegramController {
     ) throws ServletException, IOException {
         String path = null;
         List<VideoPath> videoPaths = videoPathMapper.selectByMap(ImmutableMap.of("id", videoPathId));
-        String sourcePath = videoPaths.get(0).getSourcePath();
-        String sourceFile = videoPaths.get(0).getSourceFile();
-        if(!"do".equals(fileName)){
+        VideoPath videoPath = videoPaths.get(0);
+        String parentPath = videoPath.getParentPath();
+        String sourcePath = videoPath.getSourcePath();
+        String sourceFile = videoPath.getSourceFile();
+        if (!"do".equals(fileName)) {
             sourceFile = fileName;
         }
-        path = sourcePath + sourceFile;
 
-        File file = getFile(path);
+        File file = getFile(parentPath  + sourcePath + sourceFile);
         if (file.exists()) {
             request.setAttribute(NonStaticResourceHttpRequestHandler.ATTR_FILE, file.getAbsolutePath());
             nonStaticResourceHttpRequestHandler.handleRequest(request, response);
@@ -227,8 +230,9 @@ public class TelegramController {
         }
     }
 
-    private File getFile(String paht) {
-        return new File("D:\\project\\demo\\src\\main\\resources\\" + paht);
+    private File getFile(String path) {
+//        return new File("D:\\project\\demo\\src\\main\\resources\\" + paht);
+        return new File("D:\\" + path);
     }
 
     @RequestMapping(value = "/video/pic/{vodId}/{fileId}", method = RequestMethod.GET)
@@ -239,17 +243,31 @@ public class TelegramController {
             , HttpServletResponse response
     ) throws ServletException, IOException {
         List<VideoPath> videoPaths = videoPathMapper.selectByMap(ImmutableMap.of("vod_id", vodId));
-        String sourcePath = videoPaths.get(0).getSourcePath();
+        VideoPath videoPath = videoPaths.get(0);
+        String parentPath = videoPath.getParentPath();
 
-        String path = "D:\\project\\demo\\src\\main\\resources\\" + sourcePath + "\\" + fileId;
-        File file = new File(path);
+        File file = getFile(parentPath + File.separatorChar + fileId);
         if (file.exists()) {
-            request.setAttribute(NonStaticResourceHttpRequestHandler.ATTR_FILE, path);
+            request.setAttribute(NonStaticResourceHttpRequestHandler.ATTR_FILE, file.getAbsolutePath());
             nonStaticResourceHttpRequestHandler.handleRequest(request, response);
         } else {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
         }
+    }
+
+    /**
+     * 展示评论
+     * @param vodId
+     * @return
+     * @throws ServletException
+     * @throws IOException
+     */
+    @RequestMapping(value = "/show/comment/{vodId}", method = RequestMethod.GET)
+    public RespView showComment(
+            @PathVariable("vodId") String vodId
+    ) throws ServletException, IOException {
+        return RespView.success(ImmutableList.of());
     }
 
 
