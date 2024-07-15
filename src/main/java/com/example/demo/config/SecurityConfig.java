@@ -21,17 +21,19 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) // 如果需要禁用 CSRF
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeRequests(authorize -> authorize
+                    // 结尾才能双星号，中间只能单星号
                             .requestMatchers(
                                 "/public/**"
                                 ,"/vod_**"
                                 ,"/video"
                                 ,"/video/**"
-                                ,"/video/pic/**/**"
-                                ,"/video/txt/**/**"
+                                ,"/video/pic/*/**"
+                                ,"/video/txt/*/**"
                                 ,"/video/ts/**"
                                 ,"/video/video_2024-06-30_23-14-11.m3u8"
 //                                ,"/**/*.m3u8"
-                                    ,"/**/*.ts"
+                                ,"/*/*.ts"
+                                ,"/show/comment/**"
                             ).permitAll()
 //                .antMatchers("/public/**").permitAll()
                 .anyRequest().authenticated()
