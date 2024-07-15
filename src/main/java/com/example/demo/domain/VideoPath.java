@@ -46,7 +46,7 @@ public class VideoPath implements Serializable {
     private LocalDateTime updateTime;
 
     /**
-     * source_path
+     * 
      */
     @TableField(value = "SOURCE_PATH")
     private String sourcePath;
@@ -62,6 +62,12 @@ public class VideoPath implements Serializable {
      */
     @TableField(value = "SOURCE_FILE")
     private String sourceFile;
+
+    /**
+     * 视频根路径
+     */
+    @TableField(value = "PARENT_PATH")
+    private String parentPath;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
@@ -85,7 +91,8 @@ public class VideoPath implements Serializable {
             && (this.getUpdateTime() == null ? other.getUpdateTime() == null : this.getUpdateTime().equals(other.getUpdateTime()))
             && (this.getSourcePath() == null ? other.getSourcePath() == null : this.getSourcePath().equals(other.getSourcePath()))
             && (this.getVodId() == null ? other.getVodId() == null : this.getVodId().equals(other.getVodId()))
-            && (this.getSourceFile() == null ? other.getSourceFile() == null : this.getSourceFile().equals(other.getSourceFile()));
+            && (this.getSourceFile() == null ? other.getSourceFile() == null : this.getSourceFile().equals(other.getSourceFile()))
+            && (this.getParentPath() == null ? other.getParentPath() == null : this.getParentPath().equals(other.getParentPath()));
     }
 
     @Override
@@ -100,6 +107,7 @@ public class VideoPath implements Serializable {
         result = prime * result + ((getSourcePath() == null) ? 0 : getSourcePath().hashCode());
         result = prime * result + ((getVodId() == null) ? 0 : getVodId().hashCode());
         result = prime * result + ((getSourceFile() == null) ? 0 : getSourceFile().hashCode());
+        result = prime * result + ((getParentPath() == null) ? 0 : getParentPath().hashCode());
         return result;
     }
 
@@ -117,6 +125,7 @@ public class VideoPath implements Serializable {
         sb.append(", sourcePath=").append(sourcePath);
         sb.append(", vodId=").append(vodId);
         sb.append(", sourceFile=").append(sourceFile);
+        sb.append(", parentPath=").append(parentPath);
         sb.append(", serialVersionUID=").append(serialVersionUID);
         sb.append("]");
         return sb.toString();

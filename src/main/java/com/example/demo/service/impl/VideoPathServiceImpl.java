@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
 * @author Double
 * @description 针对表【VIDEO_PATH】的数据库操作Service实现
-* @createDate 2024-07-14 03:59:53
+* @createDate 2024-07-16 04:55:11
 */
 @Service
 public class VideoPathServiceImpl extends ServiceImpl<VideoPathMapper, VideoPath>
